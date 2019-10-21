@@ -10,7 +10,7 @@ import * as parkData from "./data/parking_meters.json";
 import mapStyles from "./mapStyles";
 import Geocode from "react-geocode";
 
-const API_KEY = AIzaSyCcq9sfKruEgeckm_yRwLmBdkOFCSQ3SLA;
+const API_KEY = 'AIzaSyCcq9sfKruEgeckm_yRwLmBdkOFCSQ3SLA';
 Geocode.setApiKey(API_KEY);
 
 function Map() {
@@ -74,7 +74,7 @@ function Map() {
 
 const MapWrapped = withScriptjs(withGoogleMap(Map));
 
-export default function MapDisplay() {
+export function MapDisplay() {
   return (
     <div style={{ textAlign:"center" }}>
     <div style={{ width: "80vw", height: "80vh", display:"inline-block" }}>
@@ -92,7 +92,7 @@ export default function MapDisplay() {
   );
 }
 
-const radius = 6;
+const radius = .0001;
 
 export default class SearchPage extends React.Component {
   constructor(props) {
@@ -103,7 +103,7 @@ export default class SearchPage extends React.Component {
   }
 
   findResults(address) {
-    coordinates = Geocode.fromAddress(address).then(
+    const {lat, lng} = Geocode.fromAddress(address).then(
       response => {
         const {lat, lng} = response.results[0].geometry.location;
         return {lat, lng}
@@ -113,7 +113,7 @@ export default class SearchPage extends React.Component {
       }
     );
     const results = parkData.features.filter(park => (park.lat - lat)**2 + (park.long - lng)**2 < radius**2);
-    this.state.results = results;    
+    this.setState({results: results});    
   }
   
   render() {
@@ -168,9 +168,9 @@ class SearchBar extends React.Component {
   }
 
   handleSubmit(event) {
-      if (this.state.prevValue != this.state.value) {
+      if (this.state.prevValue !== this.state.value) {
         this.onSubmit(this.state.value);
-        this.state.prevValue = this.state.value;
+        this.setState({prevValue: this.state.value})
       }
       event.preventDefault();
   }
@@ -180,6 +180,9 @@ class SearchBar extends React.Component {
           <div>
               <form onSubmit={this.handleSubmit}>
                   <input type="text"  value={this.state.value} onChange={this.handleChange} />
+                  <button onClick={this.handleSubmit}>
+                    Search
+                  </button>
               </form>
           </div>
       );

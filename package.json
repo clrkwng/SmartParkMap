@@ -3,8 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@types/googlemaps": "^3.38.0",
+    "@types/markerclustererplus": "^2.1.33",
+    "@types/react": "^16.9.9",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-geocode": "^0.2.0",
     "react-google-maps": "^9.4.5",
     "react-scripts": "^3.2.0"
   },
@@ -22,5 +26,10 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "source-map-loader": "^0.2.4",
+    "ts-loader": "^6.2.0",
+    "typescript": "^3.6.4"
+  }
 }

@@ -72,7 +72,7 @@ function Map() {
 
 const MapWrapped = withScriptjs(withGoogleMap(Map));
 
-export default function MapDisplay() {
+export function MapDisplay() {
   return (
     <div style={{ textAlign:"center" }}>
     <div style={{ width: "80vw", height: "80vh", display:"inline-block" }}>

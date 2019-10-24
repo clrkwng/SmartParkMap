@@ -6,14 +6,18 @@ import {
   Marker,
   InfoWindow
 } from "react-google-maps";
+import { compose, withProps } from "recompose";
 import * as parkData from "./data/parking_meters.json";
 import mapStyles from "./mapStyles";
 import Geocode from "react-geocode";
+import KDBush from 'kdbush';
 
 const API_KEY = 'AIzaSyCcq9sfKruEgeckm_yRwLmBdkOFCSQ3SLA';
 Geocode.setApiKey(API_KEY);
 
-function Map() {
+const meterKD = new KDBush(parkData, p =>p.lat, p=>p.long, 100000, Int32Array);
+
+function Map(props) {
   const [selectedPark, setSelectedPark] = useState(null);
 
   useEffect(() => {
@@ -32,10 +36,10 @@ function Map() {
   return (
     <GoogleMap
       defaultZoom={10}
-      defaultCenter={{ lat: 39.961178, lng: -82.998795}}
+      defaultCenter={props.point}
       defaultOptions={{ styles: mapStyles }}
     >
-      {parkData.features.map(park => (
+      {props.results.map(park => (
         <Marker
           key={park.meter_number}
           position={{
@@ -64,7 +68,7 @@ function Map() {
         >
           <div>
             <h2>{selectedPark.properties.NAME}</h2>
-            <p>{selectedPark.properties.DESCRIPTIO}</p>
+            <p>{selectedPark.properties.DESCRIPTION}</p>
           </div>
         </InfoWindow>
       )}
@@ -72,32 +76,36 @@ function Map() {
   );
 }
 
-const MapWrapped = withScriptjs(withGoogleMap(Map));
+const MapWrapped = compose(
+  withProps({
+    googleMapURL: `https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=${API_KEY}`,
+      //   ${process.env.REACT_APP_GOOGLE_KEY}
+      // `}
+      loadingElement: <div style={{ height: `100%` }} />,
+      containerElement: <div style={{ height: `100%` }} />,
+      mapElement: <div style={{ height: `100%` }} />
+  }),
+  withScriptjs,
+  withGoogleMap
+)(Map);
 
-export function MapDisplay() {
+function MapDisplay(props) {
   return (
     <div style={{ textAlign:"center" }}>
     <div style={{ width: "80vw", height: "80vh", display:"inline-block" }}>
-      <MapWrapped
-        googleMapURL={`https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing,places&key=${API_KEY}`}
-        //   ${process.env.REACT_APP_GOOGLE_KEY}
-        // `}
-        loadingElement={<div style={{ height: `100%` }} />}
-        containerElement={<div style={{ height: `100%` }} />}
-        mapElement={<div style={{ height: `100%` }} />}
-      />
+      <MapWrapped point={props.point} results={props.results}/>
     </div>
-    <div style={{ fontSize:"xx-large" }}>Honda SmartPark</div>
     </div>
   );
 }
 
-const radius = .0001;
+const radius = .01;
 
 export default class SearchPage extends React.Component {
   constructor(props) {
       super(props);
       this.state = {
+          point: { lat: 39.961178, lng: -82.998795},
           results: []
       };
   }
@@ -105,15 +113,19 @@ export default class SearchPage extends React.Component {
   findResults(address) {
     const {lat, lng} = Geocode.fromAddress(address).then(
       response => {
+        console.log('retrieved');
         const {lat, lng} = response.results[0].geometry.location;
         return {lat, lng}
       },
       error => {
+        console.log('error');
         console.error(error);
       }
     );
-    const results = parkData.features.filter(park => (park.lat - lat)**2 + (park.long - lng)**2 < radius**2);
-    this.setState({results: results});    
+    const results = meterKD.within(lat, lng, radius).map(id => parkData.features[id]);
+    this.setState({
+      point: {lat,lng},
+      results: results});    
   }
   
   render() {
@@ -123,10 +135,10 @@ export default class SearchPage extends React.Component {
                   <TitleBar/>
               </div>
               <div>
-                  <SearchBar/>
+                  <SearchBar findResults={this.findResults}/>
               </div>
               <div>
-                <MapDisplay/>
+                <MapDisplay point={this.state.point} results={this.state.results}/>
               </div>
           </div>
       );
@@ -135,12 +147,10 @@ export default class SearchPage extends React.Component {
 
 class TitleBar extends React.Component {
   render() {
-      let title = "Honda Smart Park"
-      
       return (
           <div className = "titleBar">
-              <div className = "title">
-                  {title}
+              <div style={{ fontSize:"xx-large" }}>
+                Honda SmartPark
               </div>
               <div>
                   <Menu/>
@@ -202,6 +212,3 @@ class Menu extends React.Component {
       );
   }
 }
-
-
-

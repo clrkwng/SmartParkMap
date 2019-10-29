@@ -15,7 +15,7 @@ import KDBush from 'kdbush';
 const API_KEY = 'AIzaSyCcq9sfKruEgeckm_yRwLmBdkOFCSQ3SLA';
 Geocode.setApiKey(API_KEY);
 
-const meterKD = new KDBush(parkData, p =>p.lat, p=>p.long, 100000, Int32Array);
+const meterKD = new KDBush(parkData.features, p =>p.lat, p=>p.long, 100000, Float64Array);
 
 function Map(props) {
   const [selectedPark, setSelectedPark] = useState(null);
@@ -38,7 +38,7 @@ function Map(props) {
       defaultZoom={10}
       defaultCenter={props.point}
       defaultOptions={{ styles: mapStyles }}
-    >
+      >
       {props.results.map(park => (
         <Marker
           key={park.meter_number}
@@ -99,47 +99,66 @@ function MapDisplay(props) {
   );
 }
 
-const radius = .01;
+const radius = .001;
 
 export default class SearchPage extends React.Component {
   constructor(props) {
       super(props);
       this.state = {
-          point: { lat: 39.961178, lng: -82.998795},
-          results: []
+          point: {lat: 39.961178, lng: -82.998795},
+          results: [],
+          test: "empty"
       };
   }
 
   findResults(address) {
-    const {lat, lng} = Geocode.fromAddress(address).then(
+    Geocode.fromAddress(address).then(
       response => {
-        console.log('retrieved');
         const {lat, lng} = response.results[0].geometry.location;
-        return {lat, lng}
+        // this.setState({test: `${lat} ${lng}`})
+        return {lat, lng};
       },
+    ).then(
+      ({lat, lng})=>{
+        this.setState({test: `${lat} ${lng}`});
+        const results = meterKD.within(lat, lng, radius).map(id => parkData.features[id]);
+        this.setState({
+          point: {lat: lat, lng: lng},
+          results: results});
+      }
+    ).then(
+      ()=>{
+        if (this.state.results.length < 1) {
+          this.setState({test: "no results"});
+        } else {
+          this.setState({test: `${this.state.results.length} results found`});
+        }
+      }
+    ).catch(
       error => {
-        console.log('error');
+        this.setState({test: "error"});
         console.error(error);
+        return this.state.point;
       }
     );
-    const results = meterKD.within(lat, lng, radius).map(id => parkData.features[id]);
-    this.setState({
-      point: {lat,lng},
-      results: results});    
   }
   
   render() {
       return (
           <div>
               <div>
-                  <TitleBar/>
+                <TitleBar/>
               </div>
               <div>
-                  <SearchBar findResults={this.findResults}/>
+                <SearchBar findResults={this.findResults.bind(this)}/>
+              </div>
+              <div>
+                {this.state.test}
               </div>
               <div>
                 <MapDisplay point={this.state.point} results={this.state.results}/>
               </div>
+
           </div>
       );
   }
@@ -149,7 +168,7 @@ class TitleBar extends React.Component {
   render() {
       return (
           <div className = "titleBar">
-              <div style={{ fontSize:"xx-large" }}>
+              <div style={{ fontSize: "xx-large" }}>
                 Honda SmartPark
               </div>
               <div>

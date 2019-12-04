@@ -99,7 +99,7 @@ function MapDisplay(props) {
   );
 }
 
-const radius = .001;
+const radius = .01;
 
 export default class SearchPage extends React.Component {
   constructor(props) {
@@ -111,36 +111,25 @@ export default class SearchPage extends React.Component {
       };
   }
 
-  findResults(address) {
-    Geocode.fromAddress(address).then(
-      response => {
-        const {lat, lng} = response.results[0].geometry.location;
-        // this.setState({test: `${lat} ${lng}`})
-        return {lat, lng};
-      },
-    ).then(
-      ({lat, lng})=>{
-        this.setState({test: `${lat} ${lng}`});
-        const results = meterKD.within(lat, lng, radius).map(id => parkData.features[id]);
-        this.setState({
-          point: {lat: lat, lng: lng},
-          results: results});
+  findResults = async address => {
+    try {
+      var response = await Geocode.fromAddress(address);
+      const {lat, lng} = response.results[0].geometry.location;
+      this.setState({test: `${lat} ${lng}`});
+      const results = meterKD.within(lat, lng, radius).map(id => parkData.features[id]);
+      this.setState({
+        point: {lat: lat, lng: lng},
+        results: results});
+      if (this.state.results.length < 1) {
+        this.setState({test: "no results"});
+      } else {
+        this.setState(state => ({test: `${state.results.length} results found`}));
       }
-    ).then(
-      ()=>{
-        if (this.state.results.length < 1) {
-          this.setState({test: "no results"});
-        } else {
-          this.setState({test: `${this.state.results.length} results found`});
-        }
-      }
-    ).catch(
-      error => {
-        this.setState({test: "error"});
-        console.error(error);
-        return this.state.point;
-      }
-    );
+    } catch(error) {
+      this.setState({test: "error"});
+      console.error(error);
+      return this.state.point;
+    }
   }
   
   render() {
@@ -150,7 +139,7 @@ export default class SearchPage extends React.Component {
                 <TitleBar/>
               </div>
               <div>
-                <SearchBar findResults={this.findResults.bind(this)}/>
+                <SearchBar findResults={this.findResults}/>
               </div>
               <div>
                 {this.state.test}
@@ -186,20 +175,17 @@ class SearchBar extends React.Component {
         value: '',
         prevValue: ''
       };
-  
-      this.handleChange = this.handleChange.bind(this);
-      this.handleSubmit = this.handleSubmit.bind(this);
       this.onSubmit = this.props.findResults;
   }
 
-  handleChange(event) {
+  handleChange = event => {
       this.setState({value: event.target.value});
   }
 
-  handleSubmit(event) {
+  handleSubmit = event => {
       if (this.state.prevValue !== this.state.value) {
         this.onSubmit(this.state.value);
-        this.setState({prevValue: this.state.value})
+        this.setState(state => ({prevValue: state => state.value}));
       }
       event.preventDefault();
   }
@@ -225,9 +211,7 @@ class TimeBar extends React.Component {
 class Menu extends React.Component {
   render() {
       return (
-          <div>
-              {"Menu"}
-          </div>
+          <button> Menu </button>    
       );
   }
 }
